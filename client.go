@@ -62,7 +62,7 @@ type PacketHandler interface {
 
 func NewClient() *Client {
 	client := &Client{
-		events:   make(chan interface{}, 3),
+		events:   make(chan interface{}, 30),
 		writeBuf: new(bytes.Buffer),
 	}
 
@@ -206,7 +206,7 @@ func (c *Client) Disconnect() {
 func (c *Client) Write(msg protocol.IMsg) {
 	if cm, ok := msg.(protocol.IClientMsg); ok {
 		cm.SetSessionId(c.SessionId())
-		cm.SetSteamId(c.SteamId())
+		cm.SetSteamId(steamlang.SteamId(c.SteamId()))
 	}
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()

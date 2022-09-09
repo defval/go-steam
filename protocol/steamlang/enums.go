@@ -3905,6 +3905,7 @@ const (
 	EAccountType_Chat           EAccountType = 8
 	EAccountType_ConsoleUser    EAccountType = 9
 	EAccountType_AnonUser       EAccountType = 10
+	EAccountType_Max            EAccountType = 11
 )
 
 var EAccountType_name = map[EAccountType]string{

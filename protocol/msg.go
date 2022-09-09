@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/Philipp15b/go-steam/v3/protocol/steamlang"
-	"github.com/Philipp15b/go-steam/v3/steamid"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -26,8 +25,8 @@ type IClientMsg interface {
 	IMsg
 	GetSessionId() int32
 	SetSessionId(int32)
-	GetSteamId() steamid.SteamId
-	SetSteamId(steamid.SteamId)
+	GetSteamId() steamlang.SteamId
+	SetSteamId(steamlang.SteamId)
 }
 
 // Represents a protobuf backed client message with session data.
@@ -61,11 +60,11 @@ func (c *ClientMsgProtobuf) SetSessionId(session int32) {
 	c.Header.Proto.ClientSessionid = &session
 }
 
-func (c *ClientMsgProtobuf) GetSteamId() steamid.SteamId {
-	return steamid.SteamId(c.Header.Proto.GetSteamid())
+func (c *ClientMsgProtobuf) GetSteamId() steamlang.SteamId {
+	return steamlang.SteamId(c.Header.Proto.GetSteamid())
 }
 
-func (c *ClientMsgProtobuf) SetSteamId(s steamid.SteamId) {
+func (c *ClientMsgProtobuf) SetSteamId(s steamlang.SteamId) {
 	c.Header.Proto.Steamid = proto.Uint64(uint64(s))
 }
 
@@ -131,11 +130,11 @@ func (c *ClientMsg) SetSessionId(session int32) {
 	c.Header.SessionID = session
 }
 
-func (c *ClientMsg) GetSteamId() steamid.SteamId {
+func (c *ClientMsg) GetSteamId() steamlang.SteamId {
 	return c.Header.SteamID
 }
 
-func (c *ClientMsg) SetSteamId(s steamid.SteamId) {
+func (c *ClientMsg) SetSteamId(s steamlang.SteamId) {
 	c.Header.SteamID = s
 }
 

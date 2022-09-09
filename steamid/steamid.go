@@ -1,25 +1,41 @@
 package steamid
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/Philipp15b/go-steam/v3/protocol/steamlang"
 )
 
-type ChatInstanceFlag uint64
-
-const (
-	Clan     ChatInstanceFlag = 0x100000 >> 1
-	Lobby    ChatInstanceFlag = 0x100000 >> 2
-	MMSLobby ChatInstanceFlag = 0x100000 >> 3
-)
-
+// SteamId is a steam identifier.
 type SteamId uint64
 
+func fromAccountId(id uint32) SteamId {
+	return NewIdAdv(id, 1, 1, 1)
+}
+
+func fromAccountIdStr(id string) (SteamId, error) {
+	accountId, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		return SteamId(0), err
+	}
+	return fromAccountId(uint32(accountId)), nil
+}
+
+// NewId attempts to parse the steam ID.
 func NewId(id string) (SteamId, error) {
-	valid, err := regexp.MatchString(`STEAM_[0-5]:[01]:\d+`, id)
+	valid, err := regexp.MatchString(`[U:1:[0-9]+]`, id)
+	if err != nil {
+		return SteamId(0), err
+	}
+	if valid {
+		id = id[5 : len(id)-1]
+		return fromAccountIdStr(id)
+	}
+
+	valid, err = regexp.MatchString(`STEAM_[0-5]:[01]:\d+`, id)
 	if err != nil {
 		return SteamId(0), err
 	}
@@ -28,21 +44,28 @@ func NewId(id string) (SteamId, error) {
 		splitid := strings.Split(id, ":")          // split 0:1:00000000 into 0 1 00000000
 		universe, _ := strconv.ParseInt(splitid[0], 10, 32)
 		if universe == 0 { //EUniverse_Invalid
-			universe = 1 //EUniverse_Public
+			universe = int64(steamlang.EUniverse_Public)
 		}
 		authServer, _ := strconv.ParseUint(splitid[1], 10, 32)
 		accId, _ := strconv.ParseUint(splitid[2], 10, 32)
-		accountType := int32(1) //EAccountType_Individual
+		accountType := steamlang.EAccountType_Individual
 		accountId := (uint32(accId) << 1) | uint32(authServer)
-		return NewIdAdv(uint32(accountId), 1, int32(universe), accountType), nil
-	} else {
-		newid, err := strconv.ParseUint(id, 10, 64)
-		if err != nil {
-			return SteamId(0), err
-		}
-		return SteamId(newid), nil
+		return NewIdAdv(uint32(accountId), 1, int32(universe), int32(accountType)), nil
 	}
-	return SteamId(0), errors.New(fmt.Sprintf("Invalid SteamId: %s\n", id))
+
+	valid, err = regexp.MatchString(`^[0-9]{7,9}$`, id)
+	if err != nil {
+		return SteamId(0), err
+	}
+	if valid {
+		return fromAccountIdStr(id)
+	}
+
+	newid, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		return SteamId(0), err
+	}
+	return SteamId(newid), nil
 }
 
 func NewIdAdv(accountId, instance uint32, universe int32, accountType int32) SteamId {
@@ -93,8 +116,8 @@ func (s SteamId) SetAccountId(id uint32) SteamId {
 	return s.set(0, 0xFFFFFFFF, uint64(id))
 }
 
-func (s SteamId) GetAccountInstance() uint32 {
-	return uint32(s.get(32, 0xFFFFF))
+func (s SteamId) GetAccountInstance() AccountInstance {
+	return AccountInstance(s.get(32, 0xFFFFF))
 }
 
 func (s SteamId) SetAccountInstance(value uint32) SteamId {
@@ -102,7 +125,11 @@ func (s SteamId) SetAccountInstance(value uint32) SteamId {
 }
 
 func (s SteamId) GetAccountType() int32 {
-	return int32(s.get(52, 0xF))
+	accType := steamlang.EAccountType(s.get(52, 0xF))
+	if accType <= steamlang.EAccountType_Invalid || accType >= steamlang.EAccountType_Max {
+		return int32(steamlang.EAccountType_Invalid)
+	}
+	return int32(accType)
 }
 
 func (s SteamId) SetAccountType(t int32) SteamId {
@@ -117,20 +144,61 @@ func (s SteamId) SetAccountUniverse(universe int32) SteamId {
 	return s.set(56, 0xF, uint64(universe))
 }
 
-//used to fix the Clan SteamId to a Chat SteamId
+// used to fix the Clan SteamId to a Chat SteamId
 func (s SteamId) ClanToChat() SteamId {
-	if s.GetAccountType() == int32(7) { //EAccountType_Clan
-		s = s.SetAccountInstance(uint32(Clan))
-		s = s.SetAccountType(8) //EAccountType_Chat
+	if steamlang.EAccountType(s.GetAccountType()) == steamlang.EAccountType_Clan { //EAccountType_Clan
+		s = s.SetAccountInstance(uint32(ChatInstanceFlagClan))
+		s = s.SetAccountType(int32(steamlang.EAccountType_Chat)) //EAccountType_Chat
 	}
 	return s
 }
 
-//used to fix the Chat SteamId to a Clan SteamId
+// used to fix the Chat SteamId to a Clan SteamId
 func (s SteamId) ChatToClan() SteamId {
-	if s.GetAccountType() == int32(8) { //EAccountType_Chat
+	if steamlang.EAccountType(s.GetAccountType()) == steamlang.EAccountType_Chat { //EAccountType_Chat
 		s = s.SetAccountInstance(0)
-		s = s.SetAccountType(int32(7)) //EAccountType_Clan
+		s = s.SetAccountType(int32(steamlang.EAccountType_Clan)) //EAccountType_Clan
 	}
 	return s
+}
+
+// ToSteam2 converts to the steam2 ID representation.
+func (s SteamId) ToSteam2() string {
+	return s.String()
+}
+
+// ToSteam3 converts to the steam3 ID representation.
+func (s SteamId) ToSteam3() string {
+	accType := s.GetAccountType()
+	accInstance := s.GetAccountInstance()
+
+	accTypeChr, ok := accountTypeChars[steamlang.EAccountType(accType)]
+	if !ok {
+		accTypeChr = 'i'
+	}
+
+	if accType == int32(steamlang.EAccountType_Chat) {
+		if accInstance.HasFlag(uint32(ChatInstanceFlagClan)) {
+			accTypeChr = 'c'
+		} else if accInstance.HasFlag(uint32(ChatInstanceFlagLobby)) {
+			accTypeChr = 'L'
+		}
+	}
+
+	var renderInstance bool
+	switch steamlang.EAccountType(accType) {
+	case steamlang.EAccountType_AnonGameServer:
+		fallthrough
+	case steamlang.EAccountType_Multiseat:
+		renderInstance = true
+		break
+	case steamlang.EAccountType_Individual:
+		renderInstance = uint32(accInstance) != DesktopInstance
+	}
+
+	if renderInstance {
+		return fmt.Sprintf("[%s:%d:%d:%d]", string(accTypeChr), s.GetAccountUniverse(), s.GetAccountId(), accInstance)
+	}
+
+	return fmt.Sprintf("[%s:%d:%d]", string(accTypeChr), s.GetAccountUniverse(), s.GetAccountId())
 }

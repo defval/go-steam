@@ -96,8 +96,8 @@ func (s *Social) SendMessage(to steamid.SteamId, entryType steamlang.EChatEntryT
 		chatId := to.ClanToChat()
 		s.client.Write(protocol.NewClientMsg(&steamlang.MsgClientChatMsg{
 			ChatMsgType:     entryType,
-			SteamIdChatRoom: chatId,
-			SteamIdChatter:  s.client.SteamId(),
+			SteamIdChatRoom: steamlang.SteamId(chatId),
+			SteamIdChatter:  steamlang.SteamId(s.client.SteamId()),
 		}, []byte(message)))
 	}
 }
@@ -124,8 +124,8 @@ func (s *Social) IgnoreFriend(id steamid.SteamId, setIgnore bool) {
 		ignore = uint8(0) // False
 	}
 	s.client.Write(protocol.NewClientMsg(&steamlang.MsgClientSetIgnoreFriend{
-		MySteamId:     s.client.SteamId(),
-		SteamIdFriend: id,
+		MySteamId:     steamlang.SteamId(s.client.SteamId()),
+		SteamIdFriend: steamlang.SteamId(id),
 		Ignore:        ignore,
 	}, make([]byte, 0)))
 }
@@ -163,7 +163,7 @@ func (s *Social) RequestOfflineMessages() {
 func (s *Social) JoinChat(id steamid.SteamId) {
 	chatId := id.ClanToChat()
 	s.client.Write(protocol.NewClientMsg(&steamlang.MsgClientJoinChat{
-		SteamIdChat: chatId,
+		SteamIdChat: steamlang.SteamId(chatId),
 	}, make([]byte, 0)))
 }
 
@@ -175,7 +175,7 @@ func (s *Social) LeaveChat(id steamid.SteamId) {
 	binary.Write(payload, binary.LittleEndian, uint32(steamlang.EChatMemberStateChange_Left)) // StateChange
 	binary.Write(payload, binary.LittleEndian, s.client.SteamId().ToUint64())                 // ChatterActedBy
 	s.client.Write(protocol.NewClientMsg(&steamlang.MsgClientChatMemberInfo{
-		SteamIdChat: chatId,
+		SteamIdChat: steamlang.SteamId(chatId),
 		Type:        steamlang.EChatInfoType_StateChange,
 	}, payload.Bytes()))
 }
@@ -184,8 +184,8 @@ func (s *Social) LeaveChat(id steamid.SteamId) {
 func (s *Social) KickChatMember(room steamid.SteamId, user steamid.SteamId) {
 	chatId := room.ClanToChat()
 	s.client.Write(protocol.NewClientMsg(&steamlang.MsgClientChatAction{
-		SteamIdChat:        chatId,
-		SteamIdUserToActOn: user,
+		SteamIdChat:        steamlang.SteamId(chatId),
+		SteamIdUserToActOn: steamlang.SteamId(user),
 		ChatAction:         steamlang.EChatAction_Kick,
 	}, make([]byte, 0)))
 }
@@ -194,8 +194,8 @@ func (s *Social) KickChatMember(room steamid.SteamId, user steamid.SteamId) {
 func (s *Social) BanChatMember(room steamid.SteamId, user steamid.SteamId) {
 	chatId := room.ClanToChat()
 	s.client.Write(protocol.NewClientMsg(&steamlang.MsgClientChatAction{
-		SteamIdChat:        chatId,
-		SteamIdUserToActOn: user,
+		SteamIdChat:        steamlang.SteamId(chatId),
+		SteamIdUserToActOn: steamlang.SteamId(user),
 		ChatAction:         steamlang.EChatAction_Ban,
 	}, make([]byte, 0)))
 }
@@ -204,8 +204,8 @@ func (s *Social) BanChatMember(room steamid.SteamId, user steamid.SteamId) {
 func (s *Social) UnbanChatMember(room steamid.SteamId, user steamid.SteamId) {
 	chatId := room.ClanToChat()
 	s.client.Write(protocol.NewClientMsg(&steamlang.MsgClientChatAction{
-		SteamIdChat:        chatId,
-		SteamIdUserToActOn: user,
+		SteamIdChat:        steamlang.SteamId(chatId),
+		SteamIdUserToActOn: steamlang.SteamId(user),
 		ChatAction:         steamlang.EChatAction_UnBan,
 	}, make([]byte, 0)))
 }
