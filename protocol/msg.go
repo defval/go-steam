@@ -3,7 +3,7 @@ package protocol
 import (
 	"io"
 
-	"github.com/Philipp15b/go-steam/v3/protocol/steamlang"
+	"github.com/defval/go-steam/v3/protocol/steamlang"
 	"google.golang.org/protobuf/proto"
 )
 

@@ -7,8 +7,8 @@ import (
 	"encoding/binary"
 	"io"
 
-	"github.com/Philipp15b/go-steam/v3/protocol/protobuf"
-	"github.com/Philipp15b/go-steam/v3/rwu"
+	"github.com/defval/go-steam/v3/protocol/protobuf"
+	"github.com/defval/go-steam/v3/rwu"
 	"google.golang.org/protobuf/proto"
 )
 
